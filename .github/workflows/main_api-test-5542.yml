@@ -13,12 +13,17 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions: { contents: read }
-    steps:
-      - uses: actions/checkout@v4
+    permissions:
+      contents: read
 
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: '8.0.x' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
 
       - name: Restore
         run: dotnet restore ${{ env.PROJECT_PATH }}
@@ -29,7 +34,9 @@ jobs:
       - name: Publish
         run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }} --no-build
 
-      # Empaqueta el publish en un ZIP (raíz = DLLs)
+      - name: Ensure zip is available
+        run: sudo apt-get update && sudo apt-get install -y zip
+
       - name: Archive published app
         run: |
           cd ${{ env.PUBLISH_DIR }}
@@ -46,10 +53,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write   # OIDC
+      id-token: write
       contents: read
+
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download artifact
+        uses: actions/download-artifact@v4
         with:
           name: api-package
           path: .
@@ -61,7 +70,6 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_977398E8D76C4D099631338F11B95D44 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_FF0F1A0DD96240D29FE1A9DA726A254E }}
 
-      # Garantiza los settings correctos en cada deploy (idempotente)
       - name: Ensure runtime & run-from-package
         run: |
           az webapp config set -g rg-universidad -n api-test-5542 --linux-fx-version "DOTNETCORE:8.0"
