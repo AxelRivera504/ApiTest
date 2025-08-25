@@ -37,11 +37,12 @@ jobs:
       - name: Ensure zip is available
         run: sudo apt-get update && sudo apt-get install -y zip
 
-      - name: Archive published app
+      - name: Archive published app (zip root = DLLs)
+        working-directory: ${{ env.PUBLISH_DIR }}
         run: |
-          cd ${{ env.PUBLISH_DIR }}
           zip -r ../${{ env.PACKAGE_ZIP }} .
-          cd ..
+          echo "ZIP content:"
+          unzip -l ../${{ env.PACKAGE_ZIP }} | sed -n '1,200p'
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -63,6 +64,9 @@ jobs:
           name: api-package
           path: .
 
+      - name: Show ZIP content (sanity check)
+        run: unzip -l ./app.zip | sed -n '1,200p'
+
       - name: Login to Azure (OIDC)
         uses: azure/login@v2
         with:
@@ -73,6 +77,6 @@ jobs:
       - name: Deploy ZIP to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'api-test-5542'      # <-- cambia si tu nueva app tiene otro nombre
+          app-name: 'api-test-5542'   # cambia si tu nueva app tiene otro nombre
           slot-name: 'Production'
-          package: ./app.zip
+          package: ${{ github.workspace }}/app.zip
