@@ -1,84 +1,65 @@
-name: Build and deploy ASP.NET Core to Azure Web App - api-test-5542
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - api-test-5542
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   workflow_dispatch:
-
-env:
-  PROJECT_PATH: test_AxelRivera.WebApi/test_AxelRivera.WebApi.csproj
-  PUBLISH_DIR: publish
-  PACKAGE_ZIP: app.zip
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up .NET 8
+      - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.x'
 
-      - name: Restore
-        run: dotnet restore ${{ env.PROJECT_PATH }}
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
-      - name: Build (Release)
-        run: dotnet build ${{ env.PROJECT_PATH }} -c Release --no-restore
+      - name: dotnet publish
+        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
 
-      - name: Publish
-        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o ${{ env.PUBLISH_DIR }} --no-build
-
-      - name: Ensure zip is available
-        run: sudo apt-get update && sudo apt-get install -y zip
-
-      - name: Archive published app
-        run: |
-          cd ${{ env.PUBLISH_DIR }}
-          zip -r ../${{ env.PACKAGE_ZIP }} .
-          cd ..
-
-      - name: Upload artifact
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: api-package
-          path: ${{ env.PACKAGE_ZIP }}
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: api-package
-          path: .
-
-      - name: Login to Azure (OIDC)
+          name: .net-app
+      
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D2B6EC67FFE54ED8B61014569804AEA3 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_977398E8D76C4D099631338F11B95D44 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_FF0F1A0DD96240D29FE1A9DA726A254E }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_90147B932E7A449FA38C9F5B1A721280 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_24EC986B9F6D4AD0BEA9D1C400F95232 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_101914B411E447B18062F459C39B3EC2 }}
 
-      - name: Ensure runtime & run-from-package
-        run: |
-          az webapp config set -g rg-universidad -n api-test-5542 --linux-fx-version "DOTNETCORE:8.0"
-          az webapp config appsettings set -g rg-universidad -n api-test-5542 --settings WEBSITE_RUN_FROM_PACKAGE=1
-          az webapp config appsettings delete -g rg-universidad -n api-test-5542 --setting-names SCM_DO_BUILD_DURING_DEPLOYMENT ENABLE_ORYX_BUILD PROJECT || true
-
-      - name: Deploy ZIP to Azure Web App
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: api-test-5542
-          slot-name: Production
-          package: ./app.zip
+          app-name: 'api-test-5542'
+          slot-name: 'Production'
+          package: .
+          
