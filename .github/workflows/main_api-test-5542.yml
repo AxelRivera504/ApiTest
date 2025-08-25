@@ -1,4 +1,4 @@
-name: Build and deploy ASP.NET Core to Azure Web App (api-test-5542)
+name: Build and deploy ASP.NET Core to Azure Web App - api-test-5542
 
 on:
   push:
@@ -6,8 +6,7 @@ on:
   workflow_dispatch:
 
 env:
-  # <-- AJUSTA AQUÍ si tu ruta cambia:
-  PROJECT_PATH: WebApi.test_AxelRivera/test_AxelRivera.WebApi/test_AxelRivera.WebApi.csproj
+  PROJECT_PATH: test_AxelRivera.WebApi/test_AxelRivera.WebApi.csproj
   PUBLISH_DIR: publish
 
 jobs:
@@ -43,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write   # OIDC
+      id-token: write
       contents: read
 
     steps:
@@ -51,7 +50,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: api-package
-          path: ./publish   # <- la carpeta que vamos a subir
+          path: ./publish
 
       - name: Login to Azure (OIDC)
         uses: azure/login@v2
@@ -65,4 +64,4 @@ jobs:
         with:
           app-name: api-test-5542
           slot-name: Production
-          package: ./publish   # <- sube la carpeta publicada
+          package: ./publish
